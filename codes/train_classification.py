@@ -105,7 +105,7 @@ for epoch in range(opt.nepoch):
         train_pred = np.concatenate([train_pred, pred_labels.cpu().numpy()])
         train_target = np.concatenate([train_target, target.cpu().numpy()])
 
-    epoch_avg_loss = epoch_avg_loss.cpu().numpy() / num_batch
+    epoch_avg_loss = epoch_avg_loss / num_batch
     train_accuracy = 100 * (train_target == train_pred).sum() / len(dataset)
     print('Epoch {} : Train Loss = {:.4f}, Train Accuracy = {:.2f}%'.format(epoch, epoch_avg_loss, train_accuracy))
 
@@ -134,6 +134,6 @@ for epoch in range(opt.nepoch):
             total_targets = np.concatenate([total_targets, target.cpu().numpy()])
             a = 0
             val_avg_loss += val_batch_loss.item()
-        val_avg_loss = val_avg_loss.cpu().numpy() / num_val_batch
+        val_avg_loss = val_avg_loss / num_val_batch
         accuracy = 100 * (total_targets == total_preds).sum() / len(val_dataset)
         print('Epoch {} : Val Loss = {:.4f}, Val Accuracy = {:.2f}%'.format(epoch, val_avg_loss, accuracy))

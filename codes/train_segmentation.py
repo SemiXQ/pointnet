@@ -76,20 +76,35 @@ num_batch = len(dataloader)
 
 for epoch in range(opt.nepoch):
     classifier.train()
-
+    epoch_avg_loss = 0
+    train_pred = []
+    train_target = []
     for i, data in enumerate(tqdm(dataloader, desc='Batches', leave=False), 0):
         points, target = data
         points = points.transpose(2, 1)
         points, target = points.cuda(), target.cuda()
-        #TODO
+        # TODO
         # perform forward and backward paths, optimize network
+        pred_result, trans_input, trans_feature = classifier(points)
+        batch_loss = classifier_loss(pred_result, target)
+        if opt.feature_transform:
+            batch_loss = batch_loss + feature_transform_regularizer(trans_feature) * 0.001
+        epoch_avg_loss += batch_loss.item()
+        batch_loss.backward()
+        optimizer.step()
+        pred_labels = torch.max(pred_result, dim=1)[1]
+        train_pred = np.concatenate([train_pred, pred_labels.cpu().numpy()])
+        train_target = np.concatenate([train_target, target.cpu().numpy()])
 
-    torch.save({'model':classifier.state_dict(),
+    epoch_avg_loss = epoch_avg_loss / num_batch
+    train_accuracy = 100 * (train_target == train_pred).sum() / len(dataset)
+    print('Epoch {} : Train Loss = {:.4f}, Train Accuracy = {:.2f}%'.format(epoch, epoch_avg_loss, train_accuracy))
+
+    torch.save({'model': classifier.state_dict(),
                 'optimizer': optimizer.state_dict(),
                 'epoch': epoch}, os.path.join(opt.save_dir, 'latest_segmentation.pt'))
 
-
-## benchmark mIOU
+# benchmark mIOU
     classifier.eval()
     shape_ious = []
     with torch.no_grad():

@@ -62,8 +62,10 @@ class TNet(nn.Module):
         # fc 256 -> k*k (no batchnorm, no relu)
         self.fcTokk = nn.Linear(in_features=256, out_features=self.k*self.k)
 
-        learnable_bias = torch.eye(n=self.k, requires_grad=True)
-        self.learnable_bias = nn.Parameter(learnable_bias)
+        # I found that it should be reshape to (batchsize, 3, 3), otherwise, the loss won't get down
+        # So, I could not use nn.Parameter here
+        # learnable_bias = torch.eye(n=self.k, requires_grad=True)
+        # self.learnable_bias = nn.Parameter(learnable_bias)
 
         # TODO
         # ReLU activationfunction
@@ -108,7 +110,12 @@ class TNet(nn.Module):
         #TODO
         # define an identity matrix to add to the output.
         # This will help with the stability of the results since we want our transformations to be close to identity
-        x = self.learnable_bias + x
+        learnable_bias = torch.eye(n=self.k, requires_grad=True)
+        learnable_bias = learnable_bias.repeat(batch_size, 1, 1)
+        if x.is_cuda:
+            learnable_bias = learnable_bias.cuda()
+        x = learnable_bias + x
+        # x = self.learnable_bias + x
         # print(self.learnable_bias.is_cuda)
 
         #TODO
@@ -316,6 +323,8 @@ def feature_transform_regularizer(trans):
     #TODO
     # compute I - AA^t
     i = torch.eye(n=feature_size)
+    if trans.is_cuda:
+        i = i.cuda()
     output = i - torch.bmm(trans, torch.transpose(trans, dim0=1, dim1=2))
 
     #TODO
