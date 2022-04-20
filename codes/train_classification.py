@@ -13,6 +13,7 @@ from dataset import ShapeNetDataset
 from model import PointNetCls, feature_transform_regularizer
 import torch.nn.functional as F
 from tqdm import tqdm
+import pdb
 
 
 parser = argparse.ArgumentParser()
@@ -91,6 +92,7 @@ for epoch in range(opt.nepoch):
         points, target = points.cuda(), target.cuda()
         # TODO
         # perform forward and backward paths, optimize network
+        optimizer.zero_grad()
         output, cls_trans, cls_trans_feat = classifier(points)
         # since the it has applied a softmax+log operation to the output, so I use nllloss here
         batch_loss = F.nll_loss(output, target)

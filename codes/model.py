@@ -9,6 +9,7 @@ import torch.utils.data
 from torch.autograd import Variable
 import numpy as np
 import torch.nn.functional as F
+import pdb
 
 
 class TNet(nn.Module):
@@ -62,10 +63,8 @@ class TNet(nn.Module):
         # fc 256 -> k*k (no batchnorm, no relu)
         self.fcTokk = nn.Linear(in_features=256, out_features=self.k*self.k)
 
-        # I found that it should be reshape to (batchsize, 3, 3), otherwise, the loss won't get down
-        # So, I could not use nn.Parameter here
-        # learnable_bias = torch.eye(n=self.k, requires_grad=True)
-        # self.learnable_bias = nn.Parameter(learnable_bias)
+        learnable_bias = torch.eye(n=self.k, requires_grad=True)
+        self.learnable_bias = nn.Parameter(learnable_bias)
 
         # TODO
         # ReLU activationfunction
@@ -110,13 +109,14 @@ class TNet(nn.Module):
         #TODO
         # define an identity matrix to add to the output.
         # This will help with the stability of the results since we want our transformations to be close to identity
-        learnable_bias = torch.eye(n=self.k, requires_grad=True)
-        learnable_bias = learnable_bias.repeat(batch_size, 1, 1)
-        if x.is_cuda:
-            learnable_bias = learnable_bias.cuda()
-        x = learnable_bias + x
-        # x = self.learnable_bias + x
-        # print(self.learnable_bias.is_cuda)
+        
+        # learnable_bias = torch.eye(n=self.k, requires_grad=True)
+        # learnable_bias = learnable_bias.repeat(batch_size, 1, 1)
+        # if x.is_cuda:
+        #     learnable_bias = learnable_bias.cuda()
+        # x = learnable_bias + x
+        
+        x = self.learnable_bias + x
 
         #TODO
         # return output
@@ -293,6 +293,8 @@ class PointNetDenseCls(nn.Module):
         # trans_feat = output of applying TNet function to features (if feature_transform is true)
         # (you can directly get them from PointNetfeat)
         x, trans, trans_feat = self.pointnet_feature(x)
+        
+        batch_size, _, num_points = x.shape
 
         # TODO
         # apply layer 1
@@ -312,8 +314,16 @@ class PointNetDenseCls(nn.Module):
 
         # TODO
         # apply log-softmax
-        x = F.softmax(x, dim=1)
+        x = F.log_softmax(x, dim=1)
         x = torch.permute(x, (0, 2, 1))
+        
+        # x = torch.transpose(x, 1, 2).contiguous()
+        # x = x.view(-1, self.k)
+        # x = F.log_softmax(x, dim=1)
+        # x = x.view(batch_size, num_points, self.k)
+        
+        # print(x.shape)
+        # pdb.set_trace()
         return x, trans, trans_feat
 
 

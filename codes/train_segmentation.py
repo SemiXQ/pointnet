@@ -12,6 +12,7 @@ from model import PointNetDenseCls, feature_transform_regularizer
 import torch.nn.functional as F
 from tqdm import tqdm
 import numpy as np
+import pdb
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--batchSize', type=int, default=8, help='input batch size')
@@ -85,7 +86,10 @@ for epoch in range(opt.nepoch):
         points, target = points.cuda(), target.cuda()
         # TODO
         # perform forward and backward paths, optimize network
+        optimizer.zero_grad()
         pred_result, trans_input, trans_feature = classifier(points)
+        pred_result = pred_result.reshape(-1, num_classes)
+        target = target.reshape(-1) - 1
         batch_loss = classifier_loss(pred_result, target)
         if opt.feature_transform:
             batch_loss = batch_loss + feature_transform_regularizer(trans_feature) * 0.001
@@ -97,7 +101,7 @@ for epoch in range(opt.nepoch):
         train_target = np.concatenate([train_target, target.cpu().numpy()])
 
     epoch_avg_loss = epoch_avg_loss / num_batch
-    train_accuracy = 100 * (train_target == train_pred).sum() / len(dataset)
+    train_accuracy = 100 * (train_target == train_pred).sum() / (len(dataset)*2500)
     print('Epoch {} : Train Loss = {:.4f}, Train Accuracy = {:.2f}%'.format(epoch, epoch_avg_loss, train_accuracy))
 
     torch.save({'model': classifier.state_dict(),

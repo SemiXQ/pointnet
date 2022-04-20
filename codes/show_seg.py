@@ -9,6 +9,7 @@ from torch.autograd import Variable
 from dataset import ShapeNetDataset
 from model import PointNetDenseCls
 import matplotlib.pyplot as plt
+import pdb
 
 
 #showpoints(np.random.randn(2500,3), c1 = np.random.uniform(0,1,size = (2500)))
@@ -18,7 +19,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--model', type=str, default='../pretrained_networks/latest_segmentation.pt', help='model path')
 parser.add_argument('--idx', type=int, default=1, help='model index')
 parser.add_argument('--dataset', type=str, default='../shapenet_data/shapenetcore_partanno_segmentation_benchmark_v0', help='dataset path')
-parser.add_argument('--class_choice', type=str, default='Airplane', help='class choice')
+parser.add_argument('--class_choice', type=str, default='Chair', help='class choice')  # Airplane
 
 opt = parser.parse_args()
 print(opt)
@@ -41,7 +42,7 @@ cmap = np.array([cmap(i) for i in range(10)])[:, :3]
 gt = cmap[seg.numpy() - 1, :]
 
 state_dict = torch.load(opt.model)
-classifier = PointNetDenseCls(num_classes=state_dict['model']['mlp4.weight'].size()[0], feature_transform=True)
+classifier = PointNetDenseCls(num_classes=state_dict['model']['mlp128TokClass.weight'].size()[0], feature_transform=True)
 classifier.load_state_dict(state_dict['model'])
 classifier.eval()
 
