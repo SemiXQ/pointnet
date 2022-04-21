@@ -16,10 +16,12 @@ import pdb
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument('--model', type=str, default='../pretrained_networks/latest_segmentation.pt', help='model path')
+parser.add_argument('--model', type=str, default='seg/weights_with_transform/Chair/best_segmentation.pt', help='model path')
 parser.add_argument('--idx', type=int, default=1, help='model index')
-parser.add_argument('--dataset', type=str, default='../shapenet_data/shapenetcore_partanno_segmentation_benchmark_v0', help='dataset path')
+parser.add_argument('--dataset', type=str, default='../shapenet_data/shapenetcore_partanno_segmentation_benchmark_v0',
+                    help='dataset path')
 parser.add_argument('--class_choice', type=str, default='Chair', help='class choice')  # Airplane
+parser.add_argument('--feature_transform', default='True', help="use feature transform")
 
 opt = parser.parse_args()
 print(opt)
@@ -42,7 +44,7 @@ cmap = np.array([cmap(i) for i in range(10)])[:, :3]
 gt = cmap[seg.numpy() - 1, :]
 
 state_dict = torch.load(opt.model)
-classifier = PointNetDenseCls(num_classes=state_dict['model']['mlp128TokClass.weight'].size()[0], feature_transform=True)
+classifier = PointNetDenseCls(num_classes=state_dict['model']['mlp128TokClass.weight'].size()[0], feature_transform=opt.feature_transform)
 classifier.load_state_dict(state_dict['model'])
 classifier.eval()
 

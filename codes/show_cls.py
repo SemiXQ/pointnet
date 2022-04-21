@@ -11,7 +11,7 @@ import torch.nn.functional as F
 import numpy as np
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--model', type=str, default='../pretrained_networks/latest_classification.pt',  help='model path')
+parser.add_argument('--model', type=str, default='cls/weights_with_transform/best_classification.pt',  help='model path')
 parser.add_argument('--num_points', type=int, default=2500, help='input batch size')
 parser.add_argument('--feature_transform', default='True', help="use feature transform")
 
@@ -31,20 +31,11 @@ test_dataset = ShapeNetDataset(
     classification=True,
     split='test')
 
-# test_dataloader = torch.utils.data.DataLoader(
-#     test_dataset,
-#     batch_size=32,
-#     shuffle=True,
-#     num_workers=4)
-
 test_dataloader = torch.utils.data.DataLoader(
     test_dataset,
     batch_size=32,
-    shuffle=True)
-
-# print(len(test_dataset))
-# num_classes = len(test_dataset.classes)
-# print('classes', num_classes)
+    shuffle=True,
+    num_workers=4)
 
 classifier = PointNetCls(num_classes=len(test_dataset.classes), feature_transform=opt.feature_transform)
 classifier.cuda()
@@ -63,7 +54,7 @@ with torch.no_grad():
         points = points.transpose(2, 1)
         points, target = points.cuda(), target.cuda()
 
-        preds, _, _ = classifier(points)
+        preds, _, _, _ = classifier(points)
         pred_labels = torch.max(preds, dim=1)[1]
 
         total_preds = np.concatenate([total_preds, pred_labels.cpu().numpy()])

@@ -23,7 +23,8 @@ parser.add_argument('--workers', type=int, help='number of data loading workers'
 parser.add_argument('--model', type=str, default='', help='model path')
 parser.add_argument('--nepoch', type=int, default=250, help='number of epochs to train for')
 parser.add_argument('--outf', type=str, default='cls', help='output folder')
-parser.add_argument('--dataset', type=str, required=True, help="dataset path")
+parser.add_argument('--dataset', type=str, default='../shapenet_data/shapenetcore_partanno_segmentation_benchmark_v0',
+                    help="dataset path")
 parser.add_argument('--feature_transform', default='True', help="use feature transform")
 parser.add_argument('--save_dir', default='../pretrained_networks', help='directory to save model weights')
 
@@ -63,7 +64,7 @@ val_dataloader = torch.utils.data.DataLoader(
     num_workers=int(opt.workers))
 
 test_dataset = ShapeNetDataset(
-    root='../shapenet_data/shapenetcore_partanno_segmentation_benchmark_v0',
+    root=opt.dataset,
     npoints=opt.num_points,
     classification=True,
     split='test')
@@ -99,6 +100,9 @@ for epoch in range(opt.nepoch):
     epoch_avg_loss = 0
     train_pred = []
     train_target = []
+    if current_acc > 95:
+        print("Early stopped")
+        break
     for i, data in enumerate(tqdm(dataloader, desc='Batches', leave=False), 0):
         points, target = data
         target = target[:, 0]
@@ -107,10 +111,9 @@ for epoch in range(opt.nepoch):
         # TODO
         # perform forward and backward paths, optimize network
         optimizer.zero_grad()
-        output, cls_trans, cls_trans_feat = classifier(points)
+        output, cls_trans, cls_trans_feat, _ = classifier(points)
         # since the it has applied a softmax+log operation to the output, so I use nllloss here
-        batch_loss = F.nll_loss(output, target)
-        # TODO Do I NEED TO ADD REGULARIZER OF TRANS_INPUT
+        batch_loss = F.nll_loss(output, target) + feature_transform_regularizer(cls_trans) * 0.001
         if opt.feature_transform:
             batch_loss = batch_loss + feature_transform_regularizer(cls_trans_feat) * 0.001
         epoch_avg_loss += batch_loss.item()
@@ -143,8 +146,8 @@ for epoch in range(opt.nepoch):
             points = points.transpose(2, 1)
             points, target = points.cuda(), target.cuda()
 
-            preds, val_trans, val_trans_feat = classifier(points)
-            val_batch_loss = F.nll_loss(preds, target)
+            preds, val_trans, val_trans_feat, _ = classifier(points)
+            val_batch_loss = F.nll_loss(preds, target) + feature_transform_regularizer(val_trans) * 0.001
             if opt.feature_transform:
                 val_batch_loss = val_batch_loss + feature_transform_regularizer(val_trans_feat) * 0.001
             pred_labels = torch.max(preds, dim=1)[1]
@@ -165,7 +168,7 @@ for epoch in range(opt.nepoch):
             points = points.transpose(2, 1)
             points, target = points.cuda(), target.cuda()
 
-            preds, _, _ = classifier(points)
+            preds, _, _, _ = classifier(points)
             pred_labels = torch.max(preds, dim=1)[1]
 
             total_preds_test = np.concatenate([total_preds_test, pred_labels.cpu().numpy()])

@@ -171,6 +171,7 @@ class PointNetfeat(nn.Module):
 
     def forward(self, x):
         batch_size, _, num_points = x.shape
+        temp = x.clone()
         # TODO
         # input transformation,
         # you will need to return the transformation matrix as you will need it for the regularization loss
@@ -208,17 +209,19 @@ class PointNetfeat(nn.Module):
 
         # TODO
         # apply maxpooling
+        idx_list = torch.argmax(x, dim=2)
+        critical_points = torch.index_select(temp, 2, idx_list[0])
         x = torch.max(x, dim=2, keepdim=False)[0]
 
         # TODO
         # return output, input transformation matrix, feature transformation matrix
-        if self.global_feat: # This shows if we're doing classification or segmentation
+        if self.global_feat:  # This shows if we're doing classification or segmentation
             # when doing classification
-            return x, trans_input, trans_feature
+            return x, trans_input, trans_feature, critical_points
         else:
             x = x.view(-1, 1024, 1).repeat(1, 1, num_points)
             x = torch.cat((y, x), dim=1)
-            return x, trans_input, trans_feature
+            return x, trans_input, trans_feature, critical_points
 
 
 
@@ -236,11 +239,11 @@ class PointNetCls(nn.Module):
         self.relu = nn.ReLU()
 
     def forward(self, x):
-        x, trans, trans_feat = self.feat(x)
+        x, trans, trans_feat, critical_points = self.feat(x)
         x = F.relu(self.bn1(self.fc1(x)))
         x = F.relu(self.bn2(self.dropout(self.fc2(x))))
         x = self.fc3(x)
-        return F.log_softmax(x, dim=1), trans, trans_feat
+        return F.log_softmax(x, dim=1), trans, trans_feat, critical_points
 
 
 class PointNetDenseCls(nn.Module):
@@ -292,7 +295,7 @@ class PointNetDenseCls(nn.Module):
         # trans = output of applying TNet function to input
         # trans_feat = output of applying TNet function to features (if feature_transform is true)
         # (you can directly get them from PointNetfeat)
-        x, trans, trans_feat = self.pointnet_feature(x)
+        x, trans, trans_feat, _ = self.pointnet_feature(x)
         
         batch_size, _, num_points = x.shape
 
@@ -330,25 +333,25 @@ class PointNetDenseCls(nn.Module):
 def feature_transform_regularizer(trans):
 
     batch_size, feature_size, _ = trans.shape
-    #TODO
+    # TODO
     # compute I - AA^t
     i = torch.eye(n=feature_size)
     if trans.is_cuda:
         i = i.cuda()
     output = i - torch.bmm(trans, torch.transpose(trans, dim0=1, dim1=2))
 
-    #TODO
+    # TODO
     # compute norm
     output = torch.norm(output, p='fro', dim=(1, 2))
 
-    #TODO
+    # TODO
     # compute mean norms and return
     reg_loss = torch.mean(output)
     return reg_loss
 
 
 if __name__ == '__main__':
-    sim_data = Variable(torch.rand(32,3,2500))
+    sim_data = Variable(torch.rand(32, 3, 2500))
     trans = TNet(k=3)
     out = trans(sim_data)
     print('TNet', out.size())
@@ -361,18 +364,18 @@ if __name__ == '__main__':
     print('loss', feature_transform_regularizer(out))
 
     pointfeat = PointNetfeat(global_feat=True)
-    out, _, _ = pointfeat(sim_data)
+    out, _, _, _ = pointfeat(sim_data)
     print('global feat', out.size())
 
     pointfeat = PointNetfeat(global_feat=False)
-    out, _, _ = pointfeat(sim_data)
+    out, _, _, _ = pointfeat(sim_data)
     print('point feat', out.size())
 
-    cls = PointNetCls(num_classes = 5)
-    out, _, _ = cls(sim_data)
+    cls = PointNetCls(num_classes=5)
+    out, _, _, _ = cls(sim_data)
     print('class', out.size())
 
-    seg = PointNetDenseCls(num_classes = 3)
+    seg = PointNetDenseCls(num_classes=3)
     out, _, _ = seg(sim_data)
     print('seg', out.size())
 
