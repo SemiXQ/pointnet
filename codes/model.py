@@ -109,13 +109,7 @@ class TNet(nn.Module):
         #TODO
         # define an identity matrix to add to the output.
         # This will help with the stability of the results since we want our transformations to be close to identity
-        
-        # learnable_bias = torch.eye(n=self.k, requires_grad=True)
-        # learnable_bias = learnable_bias.repeat(batch_size, 1, 1)
-        # if x.is_cuda:
-        #     learnable_bias = learnable_bias.cuda()
-        # x = learnable_bias + x
-        
+                
         x = self.learnable_bias + x
 
         #TODO
@@ -127,7 +121,7 @@ class PointNetfeat(nn.Module):
     def __init__(self, global_feat = True, feature_transform = True):
         super(PointNetfeat, self).__init__()
 
-        self.feature_transform= feature_transform
+        self.feature_transform = feature_transform
         self.global_feat = global_feat
 
         #TODO
@@ -159,8 +153,7 @@ class PointNetfeat(nn.Module):
         # layer 3: 128 -> 1024 (no relu)
         self.mlp128To1024 = nn.Sequential(
             nn.Conv1d(in_channels=128, out_channels=1024, kernel_size=1),
-            nn.BatchNorm1d(num_features=1024),
-            nn.ReLU()
+            nn.BatchNorm1d(num_features=1024)
         )
 
         # TODO
@@ -222,7 +215,6 @@ class PointNetfeat(nn.Module):
             x = x.view(-1, 1024, 1).repeat(1, 1, num_points)
             x = torch.cat((y, x), dim=1)
             return x, trans_input, trans_feature, critical_points
-
 
 
 class PointNetCls(nn.Module):
@@ -320,13 +312,6 @@ class PointNetDenseCls(nn.Module):
         x = F.log_softmax(x, dim=1)
         x = torch.permute(x, (0, 2, 1))
         
-        # x = torch.transpose(x, 1, 2).contiguous()
-        # x = x.view(-1, self.k)
-        # x = F.log_softmax(x, dim=1)
-        # x = x.view(batch_size, num_points, self.k)
-        
-        # print(x.shape)
-        # pdb.set_trace()
         return x, trans, trans_feat
 
 
