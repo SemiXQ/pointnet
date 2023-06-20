@@ -4,9 +4,9 @@ Implementation of PointNet based on a framework provided by TA for VC Lab course
 ### Sample Results
 **Segmentation:**
 
-![airplane](https://github.com/SemiXQ/pointnet/blob/master/result/segmentation/with%20trans/4.Airplane_with_features_idx250.png)
+![airplane](https://github.com/SemiXQ/pointnet/blob/master/result/segmentation/With%20trans/4.Airplane_with_features_idx250.png)
 
-![bench](https://github.com/SemiXQ/pointnet/blob/master/result/segmentation/with%20trans/2.Chair_with_features_idx100.png)
+![bench](https://github.com/SemiXQ/pointnet/blob/master/result/segmentation/With%20trans/2.Chair_with_features_idx100.png)
 
 **For Critical points:**
 Original Image:
